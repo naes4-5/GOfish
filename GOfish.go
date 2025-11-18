@@ -37,16 +37,24 @@ func sortHand(player *Player) {
 	})
 }
 
-func (player *Player) handContains(rank int) (int, error) {
+func (player *Player) handContains(rank int) (firstIndex int, amount int, err error) {
 	if len(player.hand) == 0 {
-		return -1, errors.New("No cards in hand")
+		return -1, 0, errors.New("No cards in hand")
 	}
+	index := -1
+	amt := 0
 	for i, card := range player.hand {
 		if card.rank == rank {
-			return i, nil
+			index = i
+			for _, crad := range player.hand[i:] {
+				if !(crad.rank == rank) {
+					break
+				}
+				amt++
+			}
 		}
 	}
-	return -1, nil
+	return index, amt, nil
 }
 
 func printHands(players []Player) {
@@ -168,5 +176,11 @@ func main() {
 		log.Fatal(err)
 	}
 	printHands(players)
+	search := 9
+	ind, amt, err := players[len(players)-1].handContains(search)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("@ index %d, %d cards, searching for %d\n", ind, amt, search)
 }
 
