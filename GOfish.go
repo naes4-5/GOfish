@@ -37,7 +37,7 @@ func sortHand(player *Player) {
 	})
 }
 
-func (player *Player) handContains(rank int) (firstIndex int, amount int, err error) {
+func (player *Player) handContains(rank int) (firstIndex int, numCardsOfRank int, err error) {
 	if len(player.hand) == 0 {
 		return -1, 0, errors.New("No cards in hand")
 	}
@@ -52,6 +52,7 @@ func (player *Player) handContains(rank int) (firstIndex int, amount int, err er
 				}
 				amt++
 			}
+			return index, amt, nil
 		}
 	}
 	return index, amt, nil
@@ -121,33 +122,25 @@ func (deck *Deck) startGame(handSize int, players ...*Player) ([]Player, error) 
 	return playerList, nil
 }
 
-func (player *Player) bookCheck() []int {
-	bookedRanks := make([]int, 1)
-	c := 1
-	for i := 0; i < len(player.hand)-1; i++ {
-		if player.hand[i].rank != player.hand[i+1].rank {
-			c = 1
-			continue
+func (player *Player) removeBooks() (booksRemoved []int, err error) {
+	var removed []int
+	for i := 1; i < 14; i++ {
+		ind, amt, err := player.handContains(i)
+		if err != nil {
+			return nil, fmt.Errorf("Error in handContains(): %s", err)
 		}
-		c++
-		if c == 4 {
-			bookedRanks = append(bookedRanks, player.hand[i].rank)
-		}
-	}
-	return bookedRanks
-}
-
-func (player *Player) removeBooks(ranks []int) int {
-	for _, rank := range ranks {
-		for i := 0; i < len(player.hand); i++ {
-			if player.hand[i].rank == rank {
-				player.hand = append(player.hand[:i], player.hand[i+4:]...)
-				player.books++
-				break
+		if amt == 4 {
+			if len(player.hand) > 4 {
+				combined := append(player.hand[:ind], player.hand[ind+4:]...)
+				player.hand = append(player.hand, combined...)
+			} else {
+				player.hand = []Card{}
 			}
+			removed = append(removed, i)
 		}
 	}
-	return len(ranks)
+	player.books += len(removed)
+	return removed, nil
 }
 
 func main() {
@@ -163,9 +156,25 @@ func main() {
 				suit: suits[3],
 			}, 
 			Card {
-				rank: 8,
+				rank: 5,
+				suit: suits[2],
+			}, 
+			Card {
+				rank: 5,
+				suit: suits[1],
+			}, 
+			Card {
+				rank: 5,
+				suit: suits[0],
+			}, 
+			Card {
+				rank: 4,
 				suit: suits[1],
 			},
+			//Card {
+			//	rank: 8,
+			//	suit: suits[1],
+			//},
 		},
 		books:0,
 	}
@@ -176,11 +185,89 @@ func main() {
 		log.Fatal(err)
 	}
 	printHands(players)
-	search := 9
-	ind, amt, err := players[len(players)-1].handContains(search)
+	removed, err := players[len(players)-1].removeBooks()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("@ index %d, %d cards, searching for %d\n", ind, amt, search)
+	fmt.Println(removed)
+	printHands(players)
+	//fmt.Printf("\n\n")
+	//testPlayer := Player{
+	//	hand: []Card {
+	//		Card {
+	//			rank: 5,
+	//			suit: suits[3],
+	//		}, 
+	//		Card {
+	//			rank: 5,
+	//			suit: suits[2],
+	//		}, 
+	//		Card {
+	//			rank: 5,
+	//			suit: suits[1],
+	//		}, 
+	//		Card {
+	//			rank: 5,
+	//			suit: suits[0],
+	//		}, 
+	//		Card {
+	//			rank: 7,
+	//			suit: suits[3],
+	//		}, 
+	//		Card {
+	//			rank: 7,
+	//			suit: suits[2],
+	//		}, 
+	//		Card {
+	//			rank: 7,
+	//			suit: suits[1],
+	//		}, 
+	//		Card {
+	//			rank: 7,
+	//			suit: suits[0],
+	//		}, 
+	//		Card {
+	//			rank: 9,
+	//			suit: suits[3],
+	//		}, 
+	//		Card {
+	//			rank: 9,
+	//			suit: suits[2],
+	//		}, 
+	//		Card {
+	//			rank: 9,
+	//			suit: suits[1],
+	//		}, 
+	//		Card {
+	//			rank: 9,
+	//			suit: suits[0],
+	//		},
+	//	},
+	//	books: 0,
+	//}
+	//testPlayerS := []Player{testPlayer}
+	//
+	//printHands(testPlayerS)
+	//ind, amt, err := testPlayer.handContains(5)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Printf("the amt is: %d, and the first index is: %d\n", amt, ind)
+	//ind, amt, err = testPlayer.handContains(7)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Printf("the amt is: %d, and the first index is: %d\n", amt, ind)
+	//ind, amt, err = testPlayer.handContains(9)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Printf("the amt is: %d, and the first index is: %d\n", amt, ind)
+	//removed, err := testPlayer.removeBooks()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//printHands(testPlayerS)
+	//fmt.Println(removed)
 }
 
