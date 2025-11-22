@@ -1,34 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+	"log"
 	"math/rand/v2"
 	"sort"
-	"log"
 )
 
-var suits map[int]string = map[int]string {
-	0: "♤", 
-	1: "♡", 
-	2: "♢", 
+var suits map[int]string = map[int]string{
+	0: "♤",
+	1: "♡",
+	2: "♢",
 	3: "♧",
 }
 
 type Card struct {
-	suit string;
-	rank int;
+	suit string
+	rank int
 }
 
 type Deck struct {
-	cards        [4][]Card;
-	cardsLeft    int;
-	cardsPerSuit int;
+	cards        [4][]Card
+	cardsLeft    int
+	cardsPerSuit int
 }
 
 type Player struct {
-	hand  []Card;
-	books int;
+	hand  []Card
+	books int
 }
 
 func sortHand(player *Player) {
@@ -60,9 +60,9 @@ func (player *Player) handContains(rank int) (firstIndex int, numCardsOfRank int
 
 func printHands(players []Player) {
 	for _, player := range players {
-		for i, card:= range player.hand {
+		for i, card := range player.hand {
 			fmt.Printf("%d of %s\n", card.rank, card.suit)
-			if i == len(player.hand) - 1 {
+			if i == len(player.hand)-1 {
 				fmt.Printf("\n")
 			}
 		}
@@ -76,7 +76,7 @@ func newDeck() Deck {
 	for s := 0; s < len(suits); s++ {
 		deck.cards[s] = make([]Card, deck.cardsPerSuit)
 		for i := 0; i < deck.cardsPerSuit; i++ {
-			deck.cards[s][i] = Card {suit: suits[s], rank: i+1}
+			deck.cards[s][i] = Card{suit: suits[s], rank: i + 1}
 		}
 	}
 	deck.cardsLeft = 52
@@ -85,7 +85,7 @@ func newDeck() Deck {
 
 func (deck *Deck) drawCard() (Card, error) {
 	if deck.cardsLeft <= 0 {
-		return Card {}, errors.New(fmt.Sprintf("no more cards to draw"))
+		return Card{}, errors.New(fmt.Sprintf("no more cards to draw"))
 	}
 
 	rsuit := rand.IntN(4)
@@ -94,14 +94,14 @@ func (deck *Deck) drawCard() (Card, error) {
 	}
 	i := rand.IntN(len(deck.cards[rsuit]))
 	ret := deck.cards[rsuit][i]
-	
+
 	deck.cards[rsuit] = append(deck.cards[rsuit][:i], deck.cards[rsuit][i+1:]...)
 	deck.cardsLeft--
 	return ret, nil
 }
 
 func (deck *Deck) startGame(handSize int, players ...*Player) ([]Player, error) {
-	if len(players) * handSize > deck.cardsLeft {
+	if len(players)*handSize > deck.cardsLeft {
 		return []Player{}, errors.New("Too many players for handsize")
 	} else if len(players) < 2 {
 		return []Player{}, errors.New("Not enough players to play")
@@ -109,7 +109,7 @@ func (deck *Deck) startGame(handSize int, players ...*Player) ([]Player, error) 
 	playerList := []Player{}
 	for _, player := range players {
 		startingCardsInHand := len(player.hand)
-		for i := 0; i < handSize - startingCardsInHand; i++ {
+		for i := 0; i < handSize-startingCardsInHand; i++ {
 			card, err := deck.drawCard()
 			if err != nil {
 				return []Player{}, err
@@ -144,16 +144,42 @@ func (player *Player) removeBooks() (booksRemoved []int, err error) {
 	return removed, nil
 }
 
+func takeTurn(players []Player, deck Deck) (logs string, err error) {
+	if len(players) == 0 {
+		return "", errors.New("No players to take the turn")
+	}
+	for i, player := range players {
+		choice := rand.IntN(len(players))
+		for choice == i {
+			choice = rand.IntN(len(players))
+		}
+		choiceRank := rand.IntN(13) + 1
+		ind, amt, err := players[choice].handContains(choiceRank)
+		if err != nil {
+			return "", err
+		}
+		if ind == -1 {
+			drawnCard, err := deck.drawCard()
+			if err != nil {
+				return "", err
+			}
+			player.hand = append(player.hand, drawnCard)
+			continue
+		}
+		//now remove cards that were found in the chosen player's hand and add them to the current player's hand
+		player.removeBooks()
+	}
+	return "", nil
+}
+
 func main() {
 	deck := newDeck()
-	p1 := Player {hand: []Card{}, books: 0}
-	p2 := Player {hand: []Card{}, books: 0}
-	p3 := Player {hand: []Card{}, books: 0}
-	p4 := Player {hand: []Card{}, books: 0}
-	p5 := Player {hand: []Card{}, books: 0}
-	
+	p1 := Player{hand: []Card{}, books: 0}
+	p2 := Player{hand: []Card{}, books: 0}
+	p3 := Player{hand: []Card{}, books: 0}
+
 	handSize := 5
-	players, err := deck.startGame(handSize, &p1, &p2, &p3, &p4, &p5)
+	players, err := deck.startGame(handSize, &p1, &p2, &p3)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -164,4 +190,3 @@ func main() {
 	}
 	fmt.Printf("%v\n%v\n", removed, players[len(players)-1].hand)
 }
-
